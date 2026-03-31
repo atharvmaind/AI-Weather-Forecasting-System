@@ -37,7 +37,9 @@ export default function Dashboard() {
   }
 
   async function loadPast() {
-    const res = await api.get("/past-weather");
+    const res = await api.get("/past-weather", {
+      params: { city: String(city || "").trim(), start_date: startDate }
+    });
     setPast(res.data.items || []);
   }
 
@@ -66,9 +68,9 @@ export default function Dashboard() {
 
   useEffect(() => {
     loadPast().catch(() => {
-      // ignore initial failures until backend is running
+      // ignore until backend is running or invalid input
     });
-  }, []);
+  }, [city, startDate]);
 
   return (
     <div className="min-h-screen bg-slate-950">
@@ -79,12 +81,11 @@ export default function Dashboard() {
           <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <div className="text-2xl font-semibold tracking-tight text-slate-100">
-                10-Day AI Weather Forecast
+                AI Weather Forecasting System
               </div>
               <div className="mt-1 max-w-2xl text-sm text-slate-400">
-                RandomForest models predict Rainy/Not Rainy, Temperature and Humidity
-                using historical weather patterns. For each request, real weather is fetched
-                from Open-Meteo and used as input for day-lag features.
+                Smart weather forecasting to help you stay prepared with upcoming temperature, 
+                humidity, and rainfall predictions.
               </div>
             </div>
 

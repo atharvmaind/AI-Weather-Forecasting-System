@@ -19,6 +19,7 @@ try:
     from .ml_utils import LastKnown
     from .ml_utils import make_target_features
     from .weather_api import fetch_real_weather
+    from .weather_api import fetch_past_weather
 except ImportError:  # pragma: no cover
     import models  # type: ignore
     from database import get_db  # type: ignore
@@ -29,6 +30,7 @@ except ImportError:  # pragma: no cover
     from ml_utils import LastKnown  # type: ignore
     from ml_utils import make_target_features  # type: ignore
     from weather_api import fetch_real_weather  # type: ignore
+    from weather_api import fetch_past_weather  # type: ignore
 
 
 router = APIRouter()
@@ -38,24 +40,28 @@ DATASET_PATH = ROOT_DIR / "data" / "weather.csv"
 
 
 @router.get("/past-weather", response_model=PastWeatherResponse)
-def past_weather(db: Session = Depends(get_db)):
-    rows = (
-        db.execute(select(models.WeatherData).order_by(desc(models.WeatherData.date)).limit(7))
-        .scalars()
-        .all()
-    )
-    rows = list(reversed(rows))
-    return {
-        "items": [
+def past_weather(city: str, start_date: date):
+    """
+    Dynamic past weather: fetch previous 7 days from Open-Meteo (archive API).
+    Returns days [start_date-7 .. start_date-1].
+    """
+    try:
+        items = fetch_past_weather(city=city, start_date=str(start_date), days=7)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Failed to fetch past weather: {e}")
+
+    # Convert to schema shape (date as date)
+    out = []
+    for it in items:
+        out.append(
             {
-                "date": r.date,
-                "temperature": r.temperature,
-                "humidity": r.humidity,
-                "rain": r.rain,
+                "date": pd.to_datetime(it["date"]).date(),
+                "temperature": float(it["temperature"]),
+                "humidity": float(it["humidity"]),
+                "rain": str(it["rain"]),
             }
-            for r in rows
-        ]
-    }
+        )
+    return {"items": out}
 
 
 @router.post("/train-model", response_model=TrainResponse)

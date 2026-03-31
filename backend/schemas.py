@@ -12,7 +12,7 @@ class WeatherRow(BaseModel):
     date: date
     temperature: float
     humidity: float
-    rain: bool
+    rain: str  # "Yes" | "No"
 
 
 class PredictionRow(BaseModel):

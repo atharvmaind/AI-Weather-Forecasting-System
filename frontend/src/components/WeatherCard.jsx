@@ -4,7 +4,8 @@ function iconFor({ rain }) {
 }
 
 export default function WeatherCard({ item, variant = "forecast" }) {
-  const isRain = variant === "forecast" ? item.rain_prediction : item.rain;
+  const rawRain = variant === "forecast" ? item.rain_prediction : item.rain;
+  const isRain = typeof rawRain === "string" ? rawRain.toLowerCase() === "yes" : !!rawRain;
   const temp = variant === "forecast" ? item.predicted_temp : item.temperature;
   const hum = variant === "forecast" ? item.predicted_humidity : item.humidity;
 

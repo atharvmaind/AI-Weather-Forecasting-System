@@ -192,3 +192,66 @@ def fetch_real_weather(city: str, start_date: str, days: int) -> list[dict[str, 
 
     return out
 
+
+def fetch_past_weather(city: str, start_date: str, days: int = 7) -> list[dict[str, Any]]:
+    """
+    Fetch previous `days` days (historical) ending at start_date-1 using Open-Meteo Archive API.
+
+    Returns list:
+      { "date": "YYYY-MM-DD", "temperature": float, "humidity": float, "rain": "Yes"|"No" }
+    """
+    if days < 1 or days > 14:
+        raise ValueError("days must be between 1 and 14 for past-weather")
+
+    lat, lon = _geocode_city(city)
+    start = dt.date.fromisoformat(start_date)
+    end_hist = start - dt.timedelta(days=1)
+    start_hist = end_hist - dt.timedelta(days=days - 1)
+
+    params = {
+        "latitude": lat,
+        "longitude": lon,
+        "hourly": ",".join(
+            [
+                "temperature_2m",
+                "relative_humidity_2m",
+                "rain",
+            ]
+        ),
+        "timezone": "UTC",
+        "start_date": start_hist.isoformat(),
+        "end_date": end_hist.isoformat(),
+    }
+
+    url = "https://archive-api.open-meteo.com/v1/archive"
+    resp = requests.get(url, params=params, timeout=60)
+    resp.raise_for_status()
+    data = resp.json()
+    hourly = data.get("hourly") or {}
+
+    times = hourly.get("time") or []
+    if not times:
+        return []
+
+    df = pd.DataFrame({"time": pd.to_datetime(times, utc=True)})
+    df["date"] = df["time"].dt.date
+    df["temperature"] = hourly.get("temperature_2m") or [0.0] * len(df)
+    df["humidity"] = hourly.get("relative_humidity_2m") or [0.0] * len(df)
+    df["rain_amount"] = hourly.get("rain") or [0.0] * len(df)
+
+    out: list[dict[str, Any]] = []
+    for d, g in df.groupby("date"):
+        rain_sum = float(pd.Series(g["rain_amount"]).sum())
+        out.append(
+            {
+                "date": d.isoformat(),
+                "temperature": float(pd.Series(g["temperature"]).mean()),
+                "humidity": float(pd.Series(g["humidity"]).mean()),
+                "rain": "Yes" if rain_sum > 0.1 else "No",
+            }
+        )
+
+    out.sort(key=lambda x: x["date"])
+    # Ensure exactly `days` items where possible
+    return out[-days:]
+
