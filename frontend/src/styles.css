@@ -1,0 +1,40 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* subtle animated background */
+.bg-grid {
+  background-image: radial-gradient(rgba(148, 163, 184, 0.14) 1px, transparent 1px);
+  background-size: 18px 18px;
+}
+
+.rain-overlay {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  opacity: 0.45;
+  background-image: linear-gradient(
+      115deg,
+      rgba(56, 189, 248, 0.25),
+      rgba(56, 189, 248, 0.0) 45%
+    ),
+    repeating-linear-gradient(
+      160deg,
+      rgba(148, 163, 184, 0.25) 0px,
+      rgba(148, 163, 184, 0.25) 1px,
+      rgba(2, 6, 23, 0.0) 6px,
+      rgba(2, 6, 23, 0.0) 14px
+    );
+  animation: rainMove 1.1s linear infinite;
+  mask-image: radial-gradient(circle at 30% 25%, black 0%, transparent 70%);
+}
+
+@keyframes rainMove {
+  from {
+    background-position: 0 0, 0 0;
+  }
+  to {
+    background-position: 0 0, 120px 220px;
+  }
+}
+
